@@ -12,6 +12,7 @@ using Random = UnityEngine.Random;
 
 public class RandomGenerator : MonoBehaviour
 {
+    private int UniqueID = 0;
     private Entity entity;
 
     [SerializeField] private int howMany = 100;
@@ -70,8 +71,10 @@ public class RandomGenerator : MonoBehaviour
         float3 newCenter = advancedParameter? new float3((borders.c0.x+borders.c0.y)/2,(borders.c1.x+borders.c1.y)/2,(borders.c2.x+borders.c2.y)/2) : center;
         float3 newSize = advancedParameter?new float3(math.distance(borders.c0.x,borders.c0.y),yIsZero ? 0 : math.distance(borders.c1.x,borders.c1.y),math.distance(borders.c2.x,borders.c2.y)) : new float3(lenght,yIsZero ? 0:lenght,lenght);
 
-        entityManager.AddComponentData(entity, new PlanetData {Mass = instantiationMass, Center = newCenter, Size = newSize, IgnoreY = yIsZero});
-
+        entityManager.AddComponentData(entity, new PlanetData {Mass = instantiationMass, Center = newCenter, Size = newSize, IgnoreY = yIsZero,Destroy = false,uniqueID = UniqueID});
+        
+        ++UniqueID;
+        
         //Add scale and calcul of the size depending on the mass
 
         float m = instantiationMass;

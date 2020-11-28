@@ -8,6 +8,8 @@ public struct PlanetData : IComponentData
     public float3 Center;
     public float3 Size;
     public bool IgnoreY;
+    public bool Destroy;
+    public int uniqueID;
 
     public bool CompareBorder(int direction, float3 position)
     {
