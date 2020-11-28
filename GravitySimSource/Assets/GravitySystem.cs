@@ -6,26 +6,34 @@ using Unity.Transforms;
 
 public partial class GravitySystem : JobComponentSystem
 {
-    private ForceCalcJob job;
-    private JobHandle jobHandle;
-    private EntityQuery worldPlanets;
+    private ForceCalcJob _forceCalcJob;
+    private CheckBorder _checkBorderJob;
+    private JobHandle _jobHandle;
+    private EntityQuery _worldPlanetsForceCalc;
+    private EntityQuery _worldPlanetsCheckBorder;
 
     protected override void OnCreate()
     {
-        worldPlanets = GetEntityQuery(
-            ComponentType.ReadOnly<PlanetData>(),
-            ComponentType.ReadOnly<Translation>(),
-            ComponentType.ReadWrite<PhysicsVelocity>()
-        );
+        _worldPlanetsForceCalc = GetEntityQuery(ComponentType.ReadOnly<PlanetData>(), ComponentType.ReadOnly<Translation>(), ComponentType.ReadOnly<Scale>(), ComponentType.ReadWrite<PhysicsVelocity>());
+        
+        _worldPlanetsCheckBorder = GetEntityQuery(ComponentType.ReadOnly<PlanetData>(), ComponentType.ReadOnly<Scale>(), ComponentType.ReadOnly<Translation>(), ComponentType.ReadWrite<PhysicsVelocity>());
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        job.PlanetsTranslation = worldPlanets.ToComponentDataArray<Translation>(Allocator.TempJob);
-        job.PlanetsMasses = worldPlanets.ToComponentDataArray<PlanetData>(Allocator.TempJob);
-        jobHandle = job.Schedule(worldPlanets, inputDeps);
-        jobHandle = job.PlanetsTranslation.Dispose(jobHandle);
-        jobHandle = job.PlanetsMasses.Dispose(jobHandle);
-        return jobHandle;
+        if(UnityEngine.Time.timeScale >0)
+        {
+            _forceCalcJob.PlanetsTranslation = _worldPlanetsForceCalc.ToComponentDataArray<Translation>(Allocator.TempJob);
+            _forceCalcJob.PlanetsMasses = _worldPlanetsForceCalc.ToComponentDataArray<PlanetData>(Allocator.TempJob);
+            _forceCalcJob.PlanetsScales = _worldPlanetsForceCalc.ToComponentDataArray<Scale>(Allocator.TempJob);
+            _jobHandle = _forceCalcJob.Schedule(_worldPlanetsForceCalc, inputDeps);
+            _jobHandle = _checkBorderJob.Schedule(_worldPlanetsCheckBorder, _jobHandle);
+            _jobHandle = _forceCalcJob.PlanetsTranslation.Dispose(_jobHandle);
+            _jobHandle = _forceCalcJob.PlanetsMasses.Dispose(_jobHandle);
+            _jobHandle = _forceCalcJob.PlanetsScales.Dispose(_jobHandle);
+            return _jobHandle;
+        }
+
+        return default;
     }
 }
