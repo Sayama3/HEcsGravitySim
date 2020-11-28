@@ -1,14 +1,14 @@
 ﻿using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-using UnityEngine;
 
 public partial class GravitySystem
 {
 
+	//TODO: add explosion above a certain threshold ?
+	//TODO: can only absorb if planet inferior to itself
 	[BurstCompile]
 	private class SecondFusion : SystemBase
 	{

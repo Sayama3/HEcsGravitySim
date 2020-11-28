@@ -24,8 +24,8 @@ public class RandomGenerator : MonoBehaviour
     [SerializeField] private bool yIsZero = false;
     [SerializeField] private bool advancedParameter;
     
-    [SerializeField, Min(0), Sirenix.OdinInspector.HideIf("advancedParameter")] private float lenght;
-    [SerializeField, Sirenix.OdinInspector.HideIf("advancedParameter")] private float3 center = float3.zero;
+    [SerializeField, Min(0), HideIf("advancedParameter")] private float lenght;
+    [SerializeField, HideIf("advancedParameter")] private float3 center = float3.zero;
     private float _divideLenght => lenght / 2f;
     
     [SerializeField,Sirenix.OdinInspector.ShowIf("advancedParameter")] private float2x3 borders;
@@ -46,10 +46,8 @@ public class RandomGenerator : MonoBehaviour
         for (var i = 0; i < howMany; i++)
         {
             var masse = Random.Range(mass.x, mass.y);
-            float3 position = advancedParameter
-                ? new float3 {x = Random.Range(borders.c0.x, borders.c0.y), y = yIsZero ? (borders.c1.x+borders.c1.y)/2 : Random.Range(borders.c1.x, borders.c1.y), z = Random.Range(borders.c2.x, borders.c2.y)}
-                : new float3 {x = Random.Range(-_divideLenght-center.x, _divideLenght-center.x), y = yIsZero ? -center.y : Random.Range(-_divideLenght-center.y, _divideLenght-center.y), z = Random.Range(-_divideLenght-center.z, _divideLenght-center.z)};
-            InstantiateEntity(position,masse);
+            float3 position = advancedParameter ? new float3 {x = Random.Range(borders.c0.x, borders.c0.y), y = yIsZero ? (borders.c1.x+borders.c1.y)/2 : Random.Range(borders.c1.x, borders.c1.y), z = Random.Range(borders.c2.x, borders.c2.y)} : new float3 {x = Random.Range(-_divideLenght-center.x, _divideLenght-center.x), y = yIsZero ? -center.y : Random.Range(-_divideLenght-center.y, _divideLenght-center.y), z = Random.Range(-_divideLenght-center.z, _divideLenght-center.z)};
+            InstantiateEntity(position,masse,float3.zero);
         }
 
 
@@ -57,7 +55,7 @@ public class RandomGenerator : MonoBehaviour
         Time.timeScale = defaultTimeScale;
     }
 
-    private void InstantiateEntity(float3 instantiationPosition, float instantiationMass)
+    private void InstantiateEntity(float3 instantiationPosition, float instantiationMass, float3 initialVelocity)
     {
         entity = entityManager.Instantiate(ePrefab);
 
@@ -78,18 +76,21 @@ public class RandomGenerator : MonoBehaviour
         //Add scale and calcul of the size depending on the mass
 
         float m = instantiationMass;
-        float d = -mass.x;
+        float offset = -mass.x;
+        float x = m + offset;
         float a = (1 / (mass.y - mass.x)) * (size.y - size.x);
         float b = size.x;
-        var scale = (m + d) * a + b;
+        var scale = a * x + b;
         entityManager.AddComponentData(entity, new Scale {Value = scale});
         entityManager.SetComponentData(entity, new RenderBounds {Value = new AABB {Extents = scale}});
+        entityManager.SetComponentData(entity, new PhysicsVelocity{Linear= initialVelocity});
         //entityManager.SetComponentData(entity, new PhysicsMass{InverseMass = 1/instantiationMass});
     }
 
     private Vector3 initialPosMouse;
     private GameObject sphere;
-    new private Camera camera;
+    private float masse;
+    private new Camera camera;
 
     [SerializeField] private Material mat;
     private Camera Camera
@@ -113,46 +114,78 @@ public class RandomGenerator : MonoBehaviour
         }
     }
 
+    private bool addVelocity = false;
     private void Update()
     {
         if (Input.GetMouseButtonDown(0))
         {
-            Time.timeScale = 0;
-            initialPosMouse = Camera.ScreenToWorldPoint(Input.mousePosition);
-            initialPosMouse.y = 0f;
-            sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            sphere.transform.position = initialPosMouse;
-            sphere.transform.localScale = Vector3.one;
-            sphere.GetComponent<MeshRenderer>().material = mat;
+            if (!addVelocity)
+            {
+                Time.timeScale = 0;
+                initialPosMouse = Camera.ScreenToWorldPoint(Input.mousePosition);
+                initialPosMouse.y = 0f;
+                sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sphere.transform.position = initialPosMouse;
+                sphere.transform.localScale = Vector3.one;
+                sphere.GetComponent<MeshRenderer>().material = mat;
+            }
         }
         if (Input.GetMouseButton(0))
         {
-            var mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
-            mousePosition.y = 0f;
-            var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
-            float t = (mousePositionDelta - minMaxMouse.x) / minMaxMouse.y;  
-            
-            float m = math.lerp(mass.x, mass.y, math.clamp(t,0f,1f));
-            
-            float d = -mass.x;
-            float a = (1 / (mass.y - mass.x)) * (size.y - size.x);
-            float b = size.x;
-            sphere.transform.localScale = Vector3.one * ((m + d) * a + b);
-            sphere.SetActive(t>=0);
-            //Debug.Log("mousePositionDelta : " + mousePositionDelta);
-            Debug.DrawLine(initialPosMouse,mousePosition);
+            if (!addVelocity)
+            {
+                var mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
+                mousePosition.y = 0f;
+                var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
+                float t = (mousePositionDelta - minMaxMouse.x) / minMaxMouse.y;
+
+                float m = math.lerp(mass.x, mass.y, math.clamp(t, 0f, 1f));
+
+                float d = -mass.x;
+                float a = (1 / (mass.y - mass.x)) * (size.y - size.x);
+                float b = size.x;
+                sphere.transform.localScale = Vector3.one * ((m + d) * a + b);
+                sphere.SetActive(t >= 0);
+                //Debug.Log("mousePositionDelta : " + mousePositionDelta);
+                Debug.DrawLine(initialPosMouse, mousePosition);
+            }
+            else
+            {
+                
+                var mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
+                mousePosition.y = 0f;
+                var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
+                float3 direction = math.normalize(mousePosition - initialPosMouse);
+                Debug.DrawRay(initialPosMouse, direction*mousePositionDelta,Color.red);
+            }
 
         }
         if (Input.GetMouseButtonUp(0))
         {
-            Time.timeScale = defaultTimeScale;
-            var mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
-            mousePosition.y = 0f;
-            var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
-            float t = (mousePositionDelta - minMaxMouse.x) / minMaxMouse.y;
-            var masse = math.lerp(mass.x, mass.y, math.clamp(t,0f,1f));
-            if(t >= 0) InstantiateEntity(initialPosMouse,masse);
-            Destroy(sphere);
+            if (addVelocity)
+            {
+                Time.timeScale = defaultTimeScale;
+                
+                var mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
+                mousePosition.y = 0f;
+                var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
+                float3 direction = math.normalize(mousePosition - initialPosMouse);
+                Debug.DrawRay(initialPosMouse, direction*mousePositionDelta,Color.red);
+                
+                if(masse > mass.x) InstantiateEntity(initialPosMouse,masse,direction*mousePositionDelta);
+                Destroy(sphere);
+            }
+            else
+            {
+                var mousePosition = Camera.ScreenToWorldPoint(Input.mousePosition);
+                mousePosition.y = 0f;
+                var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
+                float t = (mousePositionDelta - minMaxMouse.x) / minMaxMouse.y;
+                masse = math.lerp(mass.x, mass.y, math.clamp(t,0f,1f));
+            }
+            
+            addVelocity = !addVelocity;
+            
         }
     }
 

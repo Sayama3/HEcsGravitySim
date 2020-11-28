@@ -153,7 +153,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f37948090db1415eada61ea2873817f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  howMany: 0
+  howMany: 10
   defaultTimeScale: 1
   prefab: {fileID: 7145622580839781336, guid: 796b82f4c76ce2b48a838545c62763ef, type: 3}
   yIsZero: 1
