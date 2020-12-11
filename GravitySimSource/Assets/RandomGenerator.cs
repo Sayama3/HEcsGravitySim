@@ -15,6 +15,7 @@ public class RandomGenerator : MonoBehaviour
     private int UniqueID = 0;
     private Entity entity;
 
+    [SerializeField] private ColorPickerTriangle _colorPickerTriangle;
     [SerializeField] private int howMany = 100;
     [SerializeField,Range(0,2)] private float defaultTimeScale = 1f;
 
@@ -39,6 +40,7 @@ public class RandomGenerator : MonoBehaviour
     // Start is called before the first frame update
     private void Start()
     {
+        Random.InitState((int)DateTime.Now.Ticks);
         blobAssetStore = new BlobAssetStore();
         ePrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(prefab,GameObjectConversionSettings.FromWorld(World.DefaultGameObjectInjectionWorld,blobAssetStore));
         
@@ -49,13 +51,14 @@ public class RandomGenerator : MonoBehaviour
             float3 position = advancedParameter ? new float3 {x = Random.Range(borders.c0.x, borders.c0.y), y = yIsZero ? (borders.c1.x+borders.c1.y)/2 : Random.Range(borders.c1.x, borders.c1.y), z = Random.Range(borders.c2.x, borders.c2.y)} : new float3 {x = Random.Range(-_divideLenght-center.x, _divideLenght-center.x), y = yIsZero ? -center.y : Random.Range(-_divideLenght-center.y, _divideLenght-center.y), z = Random.Range(-_divideLenght-center.z, _divideLenght-center.z)};
             InstantiateEntity(position,masse,float3.zero);
         }
-
+        ChangeColor();
 
         camera = Camera.main;
         Time.timeScale = defaultTimeScale;
     }
 
-    private void InstantiateEntity(float3 instantiationPosition, float instantiationMass, float3 initialVelocity)
+    //TODO: Set the color directly on the creation and only to one entity
+    private void InstantiateEntity(float3 instantiationPosition, float instantiationMass, float3 initialVelocity/*,Color color*/)
     {
         entity = entityManager.Instantiate(ePrefab);
 
@@ -84,13 +87,22 @@ public class RandomGenerator : MonoBehaviour
         entityManager.AddComponentData(entity, new Scale {Value = scale});
         entityManager.SetComponentData(entity, new RenderBounds {Value = new AABB {Extents = scale}});
         entityManager.SetComponentData(entity, new PhysicsVelocity{Linear= initialVelocity, Angular = initialVelocity});
+        //entityManager.GetSharedComponentData<RenderMesh>(entity).material.color = Random.ColorHSV();
+        //entityManager.SetSharedComponentData(entity, new RenderMesh{});
         //entityManager.SetComponentData(entity, new PhysicsMass{InverseMass = 1/instantiationMass});
+    }
+
+    private void ChangeColor(Color? color = null)
+    {
+        if (color == null) color = Random.ColorHSV();
+        entityManager.GetSharedComponentData<RenderMesh>(entity).material.color = (Color)color;
+        
     }
 
     private Vector3 initialPosMouse;
     private GameObject sphere;
     private float masse;
-    private new Camera camera;
+    [SerializeField]private new Camera camera;
 
     [SerializeField] private Material mat;
     private Camera Camera
@@ -117,6 +129,7 @@ public class RandomGenerator : MonoBehaviour
     private bool addVelocity = false;
     private void Update()
     {
+        
         if (Input.GetMouseButtonDown(0))
         {
             if (!addVelocity)
@@ -125,9 +138,11 @@ public class RandomGenerator : MonoBehaviour
                 initialPosMouse = Camera.ScreenToWorldPoint(Input.mousePosition);
                 initialPosMouse.y = 0f;
                 sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sphere.GetComponent<MeshRenderer>().material.color = _colorPickerTriangle.TheColor;
                 sphere.transform.position = initialPosMouse;
                 sphere.transform.localScale = Vector3.one;
                 sphere.GetComponent<MeshRenderer>().material = mat;
+                sphere.SetActive(true);
             }
         }
         if (Input.GetMouseButton(0))
@@ -172,8 +187,13 @@ public class RandomGenerator : MonoBehaviour
                 float3 direction = math.normalize(mousePosition - initialPosMouse);
                 Debug.DrawRay(initialPosMouse, direction*mousePositionDelta,Color.red);
                 
-                if(masse > mass.x) InstantiateEntity(initialPosMouse,masse,direction*mousePositionDelta);
+                if(masse > mass.x)
+                {
+                    InstantiateEntity(initialPosMouse, masse, direction * mousePositionDelta);
+                    ChangeColor(_colorPickerTriangle.TheColor);
+                }
                 Destroy(sphere);
+                addVelocity = !addVelocity;
             }
             else
             {
@@ -182,11 +202,20 @@ public class RandomGenerator : MonoBehaviour
                 var mousePositionDelta = Vector3.Distance(mousePosition, initialPosMouse);
                 float t = (mousePositionDelta - minMaxMouse.x) / minMaxMouse.y;
                 masse = math.lerp(mass.x, mass.y, math.clamp(t,0f,1f));
+                if(masse > mass.x)
+                    addVelocity = !addVelocity;
+                else
+                {
+                    Destroy(sphere);
+                    Time.timeScale = defaultTimeScale;
+                }
             }
             
-            addVelocity = !addVelocity;
+            
             
         }
+        
+        if(Input.GetMouseButtonDown(2)) ChangeColor(_colorPickerTriangle.TheColor);
     }
 
     private void OnDestroy()
