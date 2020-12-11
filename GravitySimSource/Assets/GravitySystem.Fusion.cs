@@ -3,10 +3,9 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-
+/*
 public partial class GravitySystem
 {
-
 	//TODO: add explosion above a certain threshold ?
 	//TODO: can only absorb if planet inferior to itself
 	[BurstCompile]
@@ -64,3 +63,4 @@ public partial class GravitySystem
 		}
 	}
 }
+*/

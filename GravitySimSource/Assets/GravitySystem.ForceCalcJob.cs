@@ -37,8 +37,10 @@ public partial class GravitySystem
         {
             for (var i = 0; i < PlanetsTranslation.Length; i++)
             {
-                physicsVelocity.Linear += GetForce(translation.Value, planetData.Mass, scale.Value/2, PlanetsTranslation[i].Value, PlanetsMasses[i].Mass, PlanetsScales[i].Value/2, planetData.IgnoreY)/(planetData.Mass*.9f);
-                physicsVelocity.Angular = float3.zero;
+                var force = GetForce(translation.Value, planetData.Mass, scale.Value/2, PlanetsTranslation[i].Value, PlanetsMasses[i].Mass, PlanetsScales[i].Value/2, planetData.IgnoreY)/(planetData.Mass*.9f);
+
+                physicsVelocity.Linear += force;
+                physicsVelocity.Angular += force;
             }
 
         }

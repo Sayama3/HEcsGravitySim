@@ -83,7 +83,7 @@ public class RandomGenerator : MonoBehaviour
         var scale = a * x + b;
         entityManager.AddComponentData(entity, new Scale {Value = scale});
         entityManager.SetComponentData(entity, new RenderBounds {Value = new AABB {Extents = scale}});
-        entityManager.SetComponentData(entity, new PhysicsVelocity{Linear= initialVelocity});
+        entityManager.SetComponentData(entity, new PhysicsVelocity{Linear= initialVelocity, Angular = initialVelocity});
         //entityManager.SetComponentData(entity, new PhysicsMass{InverseMass = 1/instantiationMass});
     }
 

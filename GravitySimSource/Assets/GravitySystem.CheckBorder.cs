@@ -18,7 +18,7 @@ public partial class GravitySystem
 				{
 					physicsVelocity.Linear *= .75f;
 					physicsVelocity.Linear = math.reflect(physicsVelocity.Linear,direction);
-					physicsVelocity.Angular = float3.zero;
+					physicsVelocity.Angular = math.reflect(physicsVelocity.Angular,direction);
 					//translation.Value = planetData.MoveCompareBorder(i, translation.Value);
 				}
 			}
