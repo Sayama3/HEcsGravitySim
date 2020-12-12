@@ -18,6 +18,7 @@ public class RandomGenerator : MonoBehaviour
     [SerializeField] private ColorPickerTriangle _colorPickerTriangle;
     [SerializeField] private int howMany = 100;
     [SerializeField,Range(0,2)] private float defaultTimeScale = 1f;
+    [SerializeField, Range(0, 1)] private float alphaCreation = .5f;
 
     // ReSharper disable once RedundantDefaultMemberInitializer
     [SerializeField] private GameObject prefab = null;
@@ -49,7 +50,17 @@ public class RandomGenerator : MonoBehaviour
         {
             var masse = Random.Range(mass.x, mass.y);
             float3 position = advancedParameter ? new float3 {x = Random.Range(borders.c0.x, borders.c0.y), y = yIsZero ? (borders.c1.x+borders.c1.y)/2 : Random.Range(borders.c1.x, borders.c1.y), z = Random.Range(borders.c2.x, borders.c2.y)} : new float3 {x = Random.Range(-_divideLenght-center.x, _divideLenght-center.x), y = yIsZero ? -center.y : Random.Range(-_divideLenght-center.y, _divideLenght-center.y), z = Random.Range(-_divideLenght-center.z, _divideLenght-center.z)};
-            InstantiateEntity(position,masse,float3.zero,  Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f));
+            var rc = Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f);
+            rc.a = 1f;
+            var v = Random.onUnitSphere;
+            if (yIsZero)
+            {
+                v.y = 0;
+                v.Normalize();
+            }
+
+            v *= Random.Range(0, 10);
+            InstantiateEntity(position,masse,v, rc);
         }
 
         camera = Camera.main;
@@ -115,14 +126,14 @@ public class RandomGenerator : MonoBehaviour
             {
                 camera = Camera.main;
             }
-            if (camera == null)
-            {
-                camera = Camera.current;
-            }
-            if (camera == null)
-            {
-                camera = FindObjectOfType<Camera>();
-            }
+            // if (camera == null)
+            // {
+            //     camera = Camera.current;
+            // }
+            // if (camera == null)
+            // {
+            //     camera = FindObjectOfType<Camera>();
+            // }
 
             return camera;
         }
@@ -131,23 +142,31 @@ public class RandomGenerator : MonoBehaviour
     private bool addVelocity = false;
     private void Update()
     {
+        var rect = Camera.pixelRect;
+        if (Input.mousePosition.x < rect.x || Input.mousePosition.y < rect.y ||
+            Input.mousePosition.x > rect.width + rect.x || Input.mousePosition.y > rect.height + rect.y) return;
         
         if (Input.GetMouseButtonDown(0))
         {
             if (!addVelocity)
             {
-                Time.timeScale = 0;
                 initialPosMouse = Camera.ScreenToWorldPoint(Input.mousePosition);
                 initialPosMouse.y = 0f;
+
+                Time.timeScale = 0;
+                if(sphere != null) Destroy(sphere);
                 sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                sphere.GetComponent<MeshRenderer>().material.color = _colorPickerTriangle.TheColor;
                 sphere.transform.position = initialPosMouse;
                 sphere.transform.localScale = Vector3.one;
-                sphere.GetComponent<MeshRenderer>().material = mat;
-                sphere.SetActive(true);
+                var mr = sphere.GetComponent<MeshRenderer>();
+                mr.material = mat;
+                var c = _colorPickerTriangle.TheColor;
+                c.a = alphaCreation;
+                mr.material.color = c;
+                // sphere.SetActive(true);
             }
         }
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButton(0) && sphere != null)
         {
             if (!addVelocity)
             {
@@ -177,7 +196,7 @@ public class RandomGenerator : MonoBehaviour
             }
 
         }
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0) && sphere != null)
         {
             if (addVelocity)
             {
@@ -194,6 +213,7 @@ public class RandomGenerator : MonoBehaviour
                     InstantiateEntity(initialPosMouse, masse, direction * mousePositionDelta,_colorPickerTriangle.TheColor);
                 }
                 Destroy(sphere);
+                sphere = null;
                 addVelocity = !addVelocity;
             }
             else
@@ -208,6 +228,7 @@ public class RandomGenerator : MonoBehaviour
                 else
                 {
                     Destroy(sphere);
+                    sphere = null;
                     Time.timeScale = defaultTimeScale;
                 }
             }
@@ -229,5 +250,35 @@ public class RandomGenerator : MonoBehaviour
         float3 newCenter = advancedParameter? new float3((borders.c0.x+borders.c0.y)/2,(borders.c1.x+borders.c1.y)/2,(borders.c2.x+borders.c2.y)/2) : center;
         float3 newSize = advancedParameter?new float3(math.distance(borders.c0.x,borders.c0.y),yIsZero ? 0 : math.distance(borders.c1.x,borders.c1.y),math.distance(borders.c2.x,borders.c2.y)) : new float3(lenght,yIsZero ? 0:lenght,lenght);
         Gizmos.DrawCube(newCenter, newSize);
+    }
+
+    private bool IsOutOfBound(float3 position, float3 center, float3 size)
+    {
+        if (position.x > center.x + size.x)
+        {
+            return true;
+        }
+        else if (position.x < center.x - size.x)
+        {
+            return true;
+        }
+        else if (position.y > center.y + size.y)
+        { 
+            return true;
+        }
+        else if (position.y < center.y - size.y)
+        { 
+            return true;
+        }
+        else if (position.z > center.z + size.z)
+        { 
+            return true;
+        }
+        else if (position.z < center.z - size.z)
+        { 
+            return true;
+        }
+
+        return false;
     }
 }

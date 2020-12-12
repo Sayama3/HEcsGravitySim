@@ -45,7 +45,7 @@ public class ColorPickerTriangle : MonoBehaviour {
 
         if (!MousePressed)
         {
-            if (Input.GetMouseButtonDown(1))
+            if (Input.GetMouseButtonDown(0))
             {
                 if (HasIntersection())
                 {
@@ -58,7 +58,7 @@ public class ColorPickerTriangle : MonoBehaviour {
         }
         else
         {
-            if (Input.GetMouseButtonUp(1) || !Input.GetMouseButton(1) || !HasIntersection())
+            if (Input.GetMouseButtonUp(0) || !Input.GetMouseButton(0) || !HasIntersection())
             {
                 MousePressed = false;
                 StopDrag();
