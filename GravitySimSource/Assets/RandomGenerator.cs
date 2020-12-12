@@ -49,17 +49,18 @@ public class RandomGenerator : MonoBehaviour
         {
             var masse = Random.Range(mass.x, mass.y);
             float3 position = advancedParameter ? new float3 {x = Random.Range(borders.c0.x, borders.c0.y), y = yIsZero ? (borders.c1.x+borders.c1.y)/2 : Random.Range(borders.c1.x, borders.c1.y), z = Random.Range(borders.c2.x, borders.c2.y)} : new float3 {x = Random.Range(-_divideLenght-center.x, _divideLenght-center.x), y = yIsZero ? -center.y : Random.Range(-_divideLenght-center.y, _divideLenght-center.y), z = Random.Range(-_divideLenght-center.z, _divideLenght-center.z)};
-            InstantiateEntity(position,masse,float3.zero);
+            InstantiateEntity(position,masse,float3.zero,  Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f));
         }
-        ChangeColor();
 
         camera = Camera.main;
         Time.timeScale = defaultTimeScale;
     }
 
     //TODO: Set the color directly on the creation and only to one entity
-    private void InstantiateEntity(float3 instantiationPosition, float instantiationMass, float3 initialVelocity/*,Color color*/)
+    private void InstantiateEntity(float3 instantiationPosition, float instantiationMass, float3 initialVelocity,Color color)
     {
+        float4 floatColor = new float4(x:color.r,y:color.g,z:color.b,w:color.a);
+        Debug.Log("floatColor = " + floatColor);
         entity = entityManager.Instantiate(ePrefab);
 
 
@@ -73,6 +74,7 @@ public class RandomGenerator : MonoBehaviour
         float3 newSize = advancedParameter?new float3(math.distance(borders.c0.x,borders.c0.y),yIsZero ? 0 : math.distance(borders.c1.x,borders.c1.y),math.distance(borders.c2.x,borders.c2.y)) : new float3(lenght,yIsZero ? 0:lenght,lenght);
 
         entityManager.AddComponentData(entity, new PlanetData {Mass = instantiationMass, Center = newCenter, Size = newSize, IgnoreY = yIsZero,Destroy = false,uniqueID = UniqueID});
+        entityManager.AddComponentData(entity, new MaterialColor{Value = floatColor});
         
         ++UniqueID;
         
@@ -92,12 +94,12 @@ public class RandomGenerator : MonoBehaviour
         //entityManager.SetComponentData(entity, new PhysicsMass{InverseMass = 1/instantiationMass});
     }
 
-    private void ChangeColor(Color? color = null)
-    {
-        if (color == null) color = Random.ColorHSV();
-        entityManager.GetSharedComponentData<RenderMesh>(entity).material.color = (Color)color;
-        
-    }
+    // private void ChangeColor(Color? color = null)
+    // {
+    //     if (color == null) color = Random.ColorHSV();
+    //     entityManager.GetSharedComponentData<RenderMesh>(entity).material.color = (Color)color;
+    //     
+    // }
 
     private Vector3 initialPosMouse;
     private GameObject sphere;
@@ -189,8 +191,7 @@ public class RandomGenerator : MonoBehaviour
                 
                 if(masse > mass.x)
                 {
-                    InstantiateEntity(initialPosMouse, masse, direction * mousePositionDelta);
-                    ChangeColor(_colorPickerTriangle.TheColor);
+                    InstantiateEntity(initialPosMouse, masse, direction * mousePositionDelta,_colorPickerTriangle.TheColor);
                 }
                 Destroy(sphere);
                 addVelocity = !addVelocity;
@@ -210,12 +211,8 @@ public class RandomGenerator : MonoBehaviour
                     Time.timeScale = defaultTimeScale;
                 }
             }
-            
-            
-            
         }
-        
-        if(Input.GetMouseButtonDown(2)) ChangeColor(_colorPickerTriangle.TheColor);
+        //if(Input.GetMouseButtonDown(2)) ChangeColor(_colorPickerTriangle.TheColor);
     }
 
     private void OnDestroy()
